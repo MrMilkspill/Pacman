@@ -1,0 +1,36 @@
+:root{
+  --bg:#000;
+  --panel:#111;
+  --text:#fff;
+  --pac:#FFD500; /* yellow */
+  --ghost1:#ff4d4d;
+  --ghost2:#4da6ff;
+}
+html,body{height:100%;}
+body{
+  margin:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,Segoe UI,Arial;
+}
+#ui{
+  position:fixed;
+  top:12px;
+  left:12px;
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+#game{border:6px solid #222; background:#000; display:block}
+#message{margin-left:8px; color:#fff}
+#controls{position:fixed; left:12px; bottom:12px; display:flex; gap:12px; align-items:center}
+#controls button{background:#222;color:#fff;border:1px solid #333;padding:6px 10px;border-radius:4px}
+#hint{color:#ddd}
+
+/* maze styling */
+.tile-wall{background:#001F5A}
+.tile-empty{background:#000}
+
