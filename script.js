@@ -80,17 +80,8 @@
     }
   }
 
-  // detect portal (tunnel) rows: if both left and right edge cells are open (not walls)
+  // No portal rows — teleportation disabled
   const portalRows = new Set();
-  for(let r=0;r<rows;r++){
-    if(grid[r][0].type !== 'wall' && grid[r][cols-1].type !== 'wall'){
-      // require that at least one adjacent inner cell is also open so this row is a corridor
-      if((grid[r][1].type !== 'wall') || (grid[r][cols-2].type !== 'wall')){
-        portalRows.add(r);
-        grid[r][0].portal = true; grid[r][cols-1].portal = true;
-      }
-    }
-  }
 
   function tileToXY(r,c){ return {x: c*tileSize + tileSize/2, y: r*tileSize + tileSize/2}; }
 
@@ -128,20 +119,15 @@
     for(const d of deltas){
       const nr=r+d[0], nc=c+d[1];
       if(nr<0||nr>=rows) continue;
-      let wc = nc;
-      if(nc < 0 || nc >= cols){
-        if(portalRows.has(nr)) wc = (nc + cols) % cols; else continue;
-      }
-      if(grid[nr][wc].type !== 'wall') out.push({r:nr,c:wc});
+        if(nc < 0 || nc >= cols) continue; // do not wrap — portals disabled
+        if(grid[nr][nc].type !== 'wall') out.push({r:nr,c:nc});
     }
     return out;
   }
   // helper to wrap a column index when on a portal row; returns null if move not allowed
   function wrapColIfPortal(r, c){
-    if(c < 0 || c >= cols){
-      if(portalRows.has(r)) return (c + cols) % cols;
-      return null;
-    }
+    // portals disabled: never wrap
+    if(c < 0 || c >= cols) return null;
     return c;
   }
   function findNextStep(sr,sc,tr,tc){
@@ -163,10 +149,7 @@
   // wrap the column and test the wrapped tile instead
   function canMoveTo(r,c){
     if(r < 0 || r >= rows) return false;
-    if(c < 0 || c >= cols){
-      if(portalRows.has(r)) c = (c + cols) % cols;
-      else return false;
-    }
+    if(c < 0 || c >= cols) return false; // no wrapping allowed
     return grid[r][c].type !== 'wall';
   }
 
@@ -240,18 +223,9 @@
     if(cell.type === 'pellet'){ cell.type='empty'; score += 10; pelletsTotal--; chomp(); updateUI(); }
     if(cell.type === 'power'){ cell.type='empty'; score += 50; pelletsTotal--; powerActive = true; powerExpires = now + 8000; frightenedEnd = now + 8000; ghosts.forEach(g=>g.edible=true); powerup(); updateUI(); }
 
-    // tunnel portal: strict pixel-level wrap when Pac-Man crosses horizontal canvas bounds on a portal row
-    if(portalRows.has(pac.r)){
-      if(pac.x < 0) pac.x += canvas.width;
-      else if(pac.x >= canvas.width) pac.x -= canvas.width;
-      // update tile column from pixel position, wrapping indices
-      pac.c = Math.floor(pac.x / tileSize);
-      if(pac.c < 0) pac.c += cols; else if(pac.c >= cols) pac.c -= cols;
-    } else {
-      // clamp to playable area if not a portal row
-      pac.x = Math.max(pac.x, tileSize/2); pac.x = Math.min(pac.x, canvas.width - tileSize/2);
-      pac.c = Math.max(0, Math.min(cols-1, pac.c));
-    }
+    // No tunnel teleportation: clamp Pac-Man to the visible play area
+    pac.x = Math.max(pac.x, tileSize/2); pac.x = Math.min(pac.x, canvas.width - tileSize/2);
+    pac.c = Math.max(0, Math.min(cols-1, pac.c));
 
   // ghost mode toggling (scatter/chase cycle scales with progress)
   ghostModeTimer += (now - (window._gmLast||now)); window._gmLast = now;
@@ -340,16 +314,9 @@
   const dist = Math.hypot(g.x - pos.x, g.y - pos.y);
   if(dist < 2){ g.r = next.r; g.c = next.c; g.x = pos.x; g.y = pos.y; g.next = null; }
 
-      // tunnel portal wrap (pixel-level) for ghosts too — use strict bounds
-      if(portalRows.has(Math.round(g.r))){
-        if(g.x < 0) g.x += canvas.width;
-        else if(g.x >= canvas.width) g.x -= canvas.width;
-        g.c = Math.floor(g.x / tileSize); if(g.c < 0) g.c += cols; else if(g.c >= cols) g.c -= cols;
-      } else {
-        // clamp ghosts to play area
-        g.x = Math.max(g.x, tileSize/2); g.x = Math.min(g.x, canvas.width - tileSize/2);
-        g.c = Math.max(0, Math.min(cols-1, g.c));
-      }
+      // No tunnel teleportation for ghosts: clamp to canvas edges
+      g.x = Math.max(g.x, tileSize/2); g.x = Math.min(g.x, canvas.width - tileSize/2);
+      g.c = Math.max(0, Math.min(cols-1, g.c));
 
       // collision with pacman (pixel distance)
       const pd = Math.hypot(g.x - pac.x, g.y - pac.y);
